@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBot } from '@/bot/botInstance';
+import { getInitializedBot } from '@/bot/botInstance';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const update = await request.json();
-    await getBot().handleUpdate(update);
+    const bot = await getInitializedBot();
+    await bot.handleUpdate(update);
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     logger.error('Error handling Telegram webhook update', { error: err.message });
@@ -27,10 +28,12 @@ export async function GET() {
       });
     }
 
-    const info = await getBot().api.getWebhookInfo();
+    const bot = await getInitializedBot();
+    const info = await bot.api.getWebhookInfo();
     return NextResponse.json({
       status: 'online',
       service: 'Telegram Media Downloader Webhook API',
+      bot_username: `@${bot.botInfo.username}`,
       timestamp: new Date().toISOString(),
       webhook_configured: Boolean(info.url),
       current_webhook_url: info.url || 'None (Webhook is NOT set!)',

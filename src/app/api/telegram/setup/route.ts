@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBot } from '@/bot/botInstance';
+import { getInitializedBot } from '@/bot/botInstance';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     const webhookUrl = `${baseUrl.replace(/\/$/, '')}/api/telegram`;
 
-    const bot = getBot();
+    const bot = await getInitializedBot();
     await bot.api.setWebhook(webhookUrl, {
       drop_pending_updates: true,
     });

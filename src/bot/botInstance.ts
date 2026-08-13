@@ -176,10 +176,27 @@ export function createBot(): Bot {
 }
 
 let _cachedBot: Bot | null = null;
+let _initPromise: Promise<void> | null = null;
 
 export function getBot(): Bot {
   if (!_cachedBot) {
     _cachedBot = createBot();
   }
   return _cachedBot;
+}
+
+export async function getInitializedBot(): Promise<Bot> {
+  const bot = getBot();
+  if (!bot.isInited()) {
+    if (!_initPromise) {
+      _initPromise = bot.init().then(() => {
+        logger.info(`Bot initialized successfully as @${bot.botInfo.username}`);
+      }).catch((err) => {
+        _initPromise = null;
+        throw err;
+      });
+    }
+    await _initPromise;
+  }
+  return bot;
 }
