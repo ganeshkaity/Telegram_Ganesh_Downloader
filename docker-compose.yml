@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  telegram-downloader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-downloader-bot
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+      - DATABASE_URL=/app/data/bot.db
+      - DOWNLOAD_TOKEN_SECRET=${DOWNLOAD_TOKEN_SECRET:-super-secret-key}
+      - TOKEN_EXPIRY_SECONDS=${TOKEN_EXPIRY_SECONDS:-900}
+    volumes:
+      - ./data:/app/data
