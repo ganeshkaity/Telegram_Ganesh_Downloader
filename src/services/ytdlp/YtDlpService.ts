@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { execFile } from 'child_process';
 import { logger } from '@/lib/logger';
 import { YtDlpMediaInfo, YtDlpParser, YtDlpPlaylistInfo } from './parser';
@@ -7,20 +9,63 @@ export class YtDlpService {
   private static binaryName = 'yt-dlp';
 
   /**
+   * Resolves cookie file path if available.
+   */
+  private static getCookiesArg(): string[] {
+    // 1. Check if raw cookie content is provided via env var (ideal for Render env variables)
+    if (process.env.YOUTUBE_COOKIES_CONTENT) {
+      const tempCookiePath = path.resolve(process.cwd(), 'temp_cookies.txt');
+      try {
+        fs.writeFileSync(tempCookiePath, process.env.YOUTUBE_COOKIES_CONTENT, 'utf8');
+        return ['--cookies', tempCookiePath];
+      } catch (err) {
+        logger.error('Failed to write temp cookies file from env', { err });
+      }
+    }
+
+    // 2. Check if custom path is set in env
+    if (process.env.YOUTUBE_COOKIES_PATH) {
+      const customPath = path.resolve(process.cwd(), process.env.YOUTUBE_COOKIES_PATH);
+      if (fs.existsSync(customPath)) {
+        return ['--cookies', customPath];
+      }
+    }
+
+    // 3. Check default cookies.txt in workspace root
+    const defaultCookiePath = path.resolve(process.cwd(), 'cookies.txt');
+    if (fs.existsSync(defaultCookiePath)) {
+      return ['--cookies', defaultCookiePath];
+    }
+
+    return [];
+  }
+
+  /**
    * Executes yt-dlp subprocess with given argument array safely.
    */
   private static runYtDlp(args: string[], timeoutMs = 30000): Promise<string> {
     return new Promise((resolve, reject) => {
-      logger.debug('Executing yt-dlp command', { args });
+      const cookieArgs = this.getCookiesArg();
+      const finalArgs = [
+        ...cookieArgs,
+        '--extractor-args',
+        'youtube:player_client=android,web',
+        ...args,
+      ];
+
+      logger.debug('Executing yt-dlp command', { args: finalArgs });
       execFile(
         this.binaryName,
-        args,
+        finalArgs,
         { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, // 10MB buffer
         (error, stdout, stderr) => {
           if (error) {
-            logger.error('yt-dlp execution error', { error: error.message, stderr, args });
+            logger.error('yt-dlp execution error', { error: error.message, stderr, args: finalArgs });
             
             const errLower = stderr.toLowerCase();
+            if (errLower.includes('sign in to confirm') || errLower.includes('bot')) {
+              return reject(new Error('🔒 YouTube requires authentication. Make sure cookies.txt is valid and updated.'));
+            }
             if (errLower.includes('private') || errLower.includes('login') || errLower.includes('account')) {
               return reject(new Error('🔒 This media appears to be private or requires authentication.'));
             }
