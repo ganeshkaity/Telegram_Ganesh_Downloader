@@ -40,10 +40,10 @@ async function main() {
   await bot.api.deleteWebhook({ drop_pending_updates: true }).catch(() => {});
 
   const botInfo = await bot.api.getMe();
+  bot.botInfo = botInfo;
   logger.info(`Bot initialized successfully! Logged in as @${botInfo.username} (${botInfo.first_name})`);
 
   bot.start({
-    botInfo,
     onStart: () => {
       logger.info('Bot is now listening for messages via long-polling...');
     },
