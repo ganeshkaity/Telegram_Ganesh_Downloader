@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: telegram-ganesh-downloader
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npx next start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.x
