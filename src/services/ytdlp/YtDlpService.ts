@@ -49,7 +49,8 @@ export class YtDlpService {
       const finalArgs = [
         ...cookieArgs,
         '--extractor-args',
-        'youtube:player_client=android,web',
+        'youtube:player_client=android',
+        '--no-check-certificates',
         ...args,
       ];
 
